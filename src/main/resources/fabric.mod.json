@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "sandpvp",
+  "version": "${version}",
+  "name": "SandPvP Essentials",
+  "description": "Lightweight client-side PvP visuals: small totem pop, low fire, small handheld, low shield, per-particle filter, custom crosshair, armor HUD, potion HUD and FPS/ping display.",
+  "authors": [ "SandPvP" ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [ "com.sandpvp.SandPvpClient" ]
+  },
+  "mixins": [ "sandpvp.mixins.json" ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

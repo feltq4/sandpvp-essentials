@@ -1,0 +1,56 @@
+name: Build SandPvP Essentials
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.5.1
+
+      - name: Build
+        run: gradle build --no-daemon --stacktrace
+
+      - name: Dump Minecraft class signatures (debug helper, never fails the build)
+        continue-on-error: true
+        run: |
+          mkdir -p dump
+          JAR=$(find ~/.gradle -name 'minecraft-merged*.jar' ! -name '*sources*' | head -1)
+          if [ -z "$JAR" ]; then JAR=$(find ~/.gradle -path '*minecraft*' -name '*.jar' -size +10M ! -name '*sources*' | head -1); fi
+          echo "Minecraft jar: $JAR" > dump/api-dump.txt
+          unzip -l "$JAR" | grep -E "(Hud|ScreenEffect|ParticleEngine|GameRenderer|ItemInHand|GuiGraphicsExtractor|ClientLevel|LevelRenderer)" >> dump/api-dump.txt || true
+          for C in net.minecraft.client.renderer.ItemInHandRenderer net.minecraft.client.renderer.ScreenEffectRenderer net.minecraft.client.renderer.GameRenderer net.minecraft.client.gui.Gui net.minecraft.client.gui.Hud net.minecraft.client.multiplayer.ClientLevel net.minecraft.client.renderer.LevelRenderer net.minecraft.client.particle.ParticleEngine; do
+            echo "=== $C ===" >> dump/api-dump.txt
+            javap -p -cp "$JAR" "$C" >> dump/api-dump.txt 2>&1 || true
+          done
+
+      - name: Save jar as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandpvp-essentials-jar
+          path: build/libs/*.jar
+
+      - name: Publish jar to the "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          make_latest: true
+          files: |
+            build/libs/*.jar
+            dump/api-dump.txt
